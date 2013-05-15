@@ -63,15 +63,15 @@
             if(0 === this.element.width || 0 === this.element.height){// Diffère le calcul de la taille en cas de non spécification des dimensions 
                 $.ajax(this.element.src).done(function(data){
                     context._dimensions.width = context.element.width;
-                    context.execR3d(context);
+                    context.execFloop(context);
                 });
 
             }else{
-                this.execR3d(context);
+                this.execFloop(context);
             }
         },
 
-        execR3d: function(context){
+        execFloop: function(context){
             this.isTouch = this.isTouchDevice();
             this._dimensions.width = this.element.width;
             this._dimensions.height = this.element.height;
@@ -119,43 +119,51 @@
             var aImgs =[]; 
             var file = "";
             for (var i = 0; i <= this._numOfPics; i++) {                
-                sSequence = ""+(i*this.options.steps);
+                sSequence = ""+(this._minPic+(i*this.options.steps));
                 while(sSequence.length<this._filename.sequence.length){
                     sSequence = sZero.concat(sSequence);
-                }
+                }                
                 file = this._filename.path+this._filename.name+sSequence+"."+this._filename.extension;
-                img = '<img style="display:inline;" src="'+file+'" />';
-                if (i*this.options.steps<this._filename.number)
-                {
-                    aImgs.push(file);
-                }
-                else if (i*this.options.steps>this._filename.number)
-                {
-                    $.ajax(file,{complete:function(data){
-                        context._progress++;
-                        //Avoid IE 8/9 flashing effect at first load
-                        if(context._progress === (context._maxPic/context.options.steps)-1){
-                            $(context.element).parent().find("img").css("display","none");
-                            $(context.element).css("display","block");
+                img = $('<img style="display:none;" />');
+                img.attr('src', file).load(function() {
+                    if (!this.complete || typeof this.naturalWidth == "undefined" || this.naturalWidth == 0) {
+                        console.log('Something wrong happens : '+file);
+                    } else {
+                        aImgs.push(this);
+                    }
+                    context._progress++;
+                    context.incrementLoad();
+                    if(context._progress == context._numOfPics){
+                        context.appendPictures(aImgs)
+                    }
+                });
+            };
+        },
+
+        appendPictures: function(aImgs){
+            for (var i = 0; i <= this._numOfPics; i++) {
+                var myImg = aImgs[i];
+                var sSequence = "";
+                var sZero ="0";
+                sSequence = ""+(this._minPic+(i*this.options.steps));
+                while(sSequence.length<this._filename.sequence.length){
+                    sSequence = sZero.concat(sSequence);
+                }                
+                file = this._filename.path+this._filename.name+sSequence+"."+this._filename.extension;                
+                for (var j = 0; j <= this._numOfPics; j++) {             
+                    if($(aImgs[j]).attr("src") == file){
+                        if(-1 != $(aImgs[j]).attr("src").indexOf($(this.element).attr("src"))){
+                            $(this.element).parent().append($(this.element));
+                        }else{
+                            $(this.element).parent().append(aImgs[j]);
                         }
-                    }});
-                    $(context.element).parent().append(img);
-                }else{}
-            };
-            for (var i = aImgs.length - 1; i >= 0; i--) {
+                    }
+                }
+            }
+        },
 
-                    $.ajax(aImgs[i],{complete:function(data){
-                        context._progress++;
-                        //Avoid IE flashing effect at first load
-                        if(context._progress === (context._maxPic/context.options.steps)-1){
-                            $(context.element).parent().find("img").css("display","none");
-                            $(context.element).css("display","block");
-                        }                        
-                    }});
-                    img = '<img style="display:inline;" src="'+aImgs[i]+'" />';
-                    $(context.element).parent().prepend(img);
-            };
-
+        incrementLoad: function(){
+            //mettre ici le code pour faire preogresser la progressbar
         },
 
         setControls: function(context){
@@ -163,7 +171,7 @@
             var prevX = 0;
             $(context.element).parent().draggable({ 
                 iframeFix: true,
-                grid: [ 900000, 900000 ],
+                grid: [900000, 900000],
                 drag:function( ev, ui ){
                     if((prevX > ev.originalEvent.pageX)){
                         if(0 == ev.originalEvent.pageX%3){
@@ -177,8 +185,6 @@
                     }
                     prevX = ev.originalEvent.pageX; 
             }});
-
-
 
             $(document).on("keydown",function(evt){
                 switch(evt.which){
@@ -219,6 +225,7 @@
 
         }
     };
+
 
     // A really lightweight plugin wrapper around the constructor,
     // preventing against multiple instantiations
