@@ -46,6 +46,9 @@
         this._numOfPics = 0;
         this._dimensions = {width:0,height:0};
         this._container = "";
+        this._statusBar = "";
+        this._progressBar = "";
+        this._progressValue = "";
         this._visibleImg = $(this.element);
         this._progress =0;
         this.init();
@@ -75,13 +78,12 @@
             this.isTouch = this.isTouchDevice();
             this._dimensions.width = this.element.width;
             this._dimensions.height = this.element.height;
-            this.prepareHtml();
             this._minPic =  parseInt(this.options.range.slice(0,1+this.options.range.indexOf("-")));
             this._maxPic =  parseInt(this.options.range.slice(1+this.options.range.indexOf("-"),this.options.range.length));
-            this._numOfPics = Math.floor(this._maxPic/this.options.steps);
+            this._numOfPics = Math.ceil(this._maxPic/this.options.steps);
             this.setFilename();
-            this.loadPictures(context);
-            this.setControls(context);  
+            this.prepareHtml();
+            this.loadPictures(context);   
         },
 
 
@@ -98,6 +100,16 @@
             $(this.element).css({position:"relative",zIndex:"1"});
             this._container = $('<div class="floop_container" style="overflow:hidden;width:'+this._dimensions.width+'px;height:'+this._dimensions.height+'px;"></div>');
             $(this.element).wrap(this._container);
+            this._statusBar = $('<div style="width:'+this._dimensions.width+'px;" class="floop_status"></div>');
+            $(this.element).parent().after(this._statusBar);
+
+            //prévoir une autre solution pour ie, l'objet progressbar n'est pas reconnu.
+            this._progressValue = $('<div style="width:0%;" class="floop_progress_value"></div>');
+            this._progressBar = $('<div class="floop_progress"></div>');
+            //this._progressBar = $('<progress class="floop_progress" value="0" max="'+this._numOfPics+'"></progress>');
+            this._statusBar.append(this._progressBar);
+            this._progressBar.append(this._progressValue);
+            //$(this.element).parent().after(this._progressBar);
         },
 
         setFilename: function(){
@@ -131,16 +143,19 @@
                     } else {
                         aImgs.push(this);
                     }
-                    context._progress++;
+                    
                     context.incrementLoad();
                     if(context._progress == context._numOfPics){
-                        context.appendPictures(aImgs)
+                        context.appendPictures(aImgs,context)
+                    }else{
+                      context._progress++;  
                     }
                 });
             };
         },
 
-        appendPictures: function(aImgs){
+        appendPictures: function(aImgs,context){
+            this._statusBar.remove();
             for (var i = 0; i <= this._numOfPics; i++) {
                 var myImg = aImgs[i];
                 var sSequence = "";
@@ -160,10 +175,11 @@
                     }
                 }
             }
+            this.setControls(context);
         },
 
-        incrementLoad: function(){
-            //mettre ici le code pour faire preogresser la progressbar
+        incrementLoad: function(){   
+            this._progressValue.css("width",Math.ceil((this._numOfPics/this._progress)*100)+"%");
         },
 
         setControls: function(context){
@@ -196,7 +212,6 @@
                         context.displayNext(context);
                         break; 
                 }
-
             });
         },
 

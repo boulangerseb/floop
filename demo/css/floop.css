@@ -1,0 +1,3 @@
+.floop_status{position:relative;z-index: 1;height:0.2em;overflow:hidden;top:-0.2em;background:#fff;opacity:0.75;}
+.floop_progress{width:100%;height:0.2em;margin:0 auto;}
+.floop_progress_value{height:0.2em;background:#baff00;}

@@ -9,20 +9,17 @@
         <title>Demonstration of r3d jQuery plugin</title>
         <meta name="description" content="Demonstration of r3d jQuery plugin">
         <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" href="css/floop.css" />
     </head>
     <body>
         <p>Drag on the picture to rotate the object</p>
         <!-- just add the image you want to display by default, others will load asynchronously -->
-        <img width="800" height="600" src="img/assets/teapot/render001/teapot0010.jpg" class="whatyouwant" alt="Demonstration of r3d jQuery plugin" />
-
-
+        <img src="img/assets/teapot/render001/teapot0010.jpg" class="whatyouwant" alt="Demonstration of r3d jQuery plugin" />
         <script src="js/libs/jquery-1.9.1.min.js"></script>
         <!-- the two next scripts are mandatory only if you want touch-screen support -->
         <script src="js/libs/jquery-ui-1.10.3.custom.min.js"></script>
         <script src="js/libs/jquery.ui.touch-punch.min.js"></script>
-
         <script src="js/jquery.floop.js"></script>
-
         <script type="text/javascript">
         $(document).ready(function(){
             $(".whatyouwant").floop({
