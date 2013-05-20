@@ -3,38 +3,25 @@
  *  Description: A jQuery plugin to display a frames sequence as a browsable animation. Mainly used to simulate 3D roation in a browser.
  *  Author: Sébastien Boulanger
  *  License: Creative Commons
+ *  Version: 0.5.1
  */
 
-// the semi-colon before function invocation is a safety net against concatenated
-// scripts and/or other plugins which may not be closed properly.
-
-
 ;(function ( $, window, document, undefined ) {
-
-    // undefined is used here as the undefined global variable in ECMAScript 3 is
-    // mutable (ie. it can be changed by someone else). undefined isn't really being
-    // passed in so we can ensure the value of it is truly undefined. In ES5, undefined
-    // can no longer be modified.
-
-    // window and document are passed through as local variable rather than global
-    // as this (slightly) quickens the resolution process and can be more efficiently
-    // minified (especially when both are regularly referenced in your plugin).
-
-    // Create the defaults once
     var pluginName = "floop",
         defaults = {
             range: "0-100",
-            steps: 1
+            steps: 1,
+            reverse:false,
+            callToAction:true,
+            className:"",
+            autoplay: {speed:25,repeat:5,locked:true}, // sample value : {speed:25,repeat:5,locked:true}
+            onLoad:null,
+            onComplete:null
         };
 
-    // The actual plugin constructor
+
     function Plugin( element, options ) {
         this.element = element;
-
-        // jQuery has an extend method which merges the contents of two or
-        // more objects, storing the result in the first object. The first object
-        // is generally empty as we don't want to alter the default options for
-        // future instances of the plugin
         
         this.options = $.extend( {}, defaults, options);
         this._isTouch = false;
@@ -46,22 +33,20 @@
         this._numOfPics = 0;
         this._dimensions = {width:0,height:0};
         this._container = "";
+        this._images = "";
+        this._dragIcon ="";
         this._statusBar = "";
         this._progressBar = "";
         this._progressValue = "";
         this._visibleImg = $(this.element);
         this._progress =0;
+        this._autoplayItv = null;
+        this._autoplayRepeats = 0;
         this.init();
     }
 
     Plugin.prototype = {
         init: function() {
-            // Place initialization logic here
-            // You already have access to the DOM element and
-            // the options via the instance, e.g. this.element
-            // and this.options
-            // you can add more functions like the one below and
-            // call them like so: this.yourOtherFunction(this.element, this.options)
             var context = this;
             if(0 === this.element.width || 0 === this.element.height){// Diffère le calcul de la taille en cas de non spécification des dimensions 
                 $.ajax(this.element.src).done(function(data){
@@ -81,8 +66,9 @@
             this._minPic =  parseInt(this.options.range.slice(0,1+this.options.range.indexOf("-")));
             this._maxPic =  parseInt(this.options.range.slice(1+this.options.range.indexOf("-"),this.options.range.length));
             this._numOfPics = Math.ceil(this._maxPic/this.options.steps);
+
             this.setFilename();
-            this.prepareHtml();
+            this.prepareHtml(context);
             this.loadPictures(context);   
         },
 
@@ -96,20 +82,28 @@
         },
 
 
-        prepareHtml: function(){
+        prepareHtml: function(context){
             $(this.element).css({position:"relative",zIndex:"1"});
-            this._container = $('<div class="floop_container" style="overflow:hidden;width:'+this._dimensions.width+'px;height:'+this._dimensions.height+'px;"></div>');
-            $(this.element).wrap(this._container);
+            this._container = $('<div class="floop_container '+this.options.className+'" style="overflow:hidden;width:'+this._dimensions.width+'px;height:'+this._dimensions.height+'px;"></div>');
+            this._images = $('<div class="floop_images" style="overflow:hidden;width:'+this._dimensions.width+'px;height:'+this._dimensions.height+'px;"></div>');
+            $(this.element).wrap(this._images);
+            $(this.element).parent().wrap(this._container);
             this._statusBar = $('<div style="width:'+this._dimensions.width+'px;" class="floop_status"></div>');
             $(this.element).parent().after(this._statusBar);
 
-            //prévoir une autre solution pour ie, l'objet progressbar n'est pas reconnu.
             this._progressValue = $('<div style="width:0%;" class="floop_progress_value"></div>');
             this._progressBar = $('<div class="floop_progress"></div>');
-            //this._progressBar = $('<progress class="floop_progress" value="0" max="'+this._numOfPics+'"></progress>');
             this._statusBar.append(this._progressBar);
             this._progressBar.append(this._progressValue);
-            //$(this.element).parent().after(this._progressBar);
+            this._dragIcon = $('<div style="margin-top:'+((this._dimensions.height/2)-11)+'px;margin-left:'+((this._dimensions.width/2)-15)+'px;" class="floop_drag_icon"></div>');
+        },
+
+        animateDragIcon:function(context){
+            this._dragIcon.animate({marginLeft:'-=2px'}, 200,function(){
+                context._dragIcon.animate({marginLeft:'+=2px'}, 200,function(){
+                    context.animateDragIcon(context);
+                });
+            });            
         },
 
         setFilename: function(){
@@ -126,9 +120,9 @@
 
         loadPictures: function(context){
             var sSequence = "";
-            var sZero ="0";
+            var sZero = "0";
             var img = "";
-            var aImgs =[]; 
+            var aImgs = []; 
             var file = "";
             for (var i = 0; i <= this._numOfPics; i++) {                
                 sSequence = ""+(this._minPic+(i*this.options.steps));
@@ -175,44 +169,76 @@
                     }
                 }
             }
+
+            this.options.callToAction ? $(this.element).parent().before(this._dragIcon) : null;
+            this.animateDragIcon(context);
             this.setControls(context);
         },
 
-        incrementLoad: function(){   
-            this._progressValue.css("width",Math.ceil((this._numOfPics/this._progress)*100)+"%");
+        incrementLoad: function(){ 
+            this._progressValue.css("width",Math.ceil((this._progress/this._numOfPics)*100)+"%");
         },
 
         setControls: function(context){
+
+            $(context.element).parent().on("mouseover",function(){
+                context._dragIcon.remove();
+                $(this).off("mouseover");
+            });
 
             var prevX = 0;
             $(context.element).parent().draggable({ 
                 iframeFix: true,
                 grid: [900000, 900000],
                 drag:function( ev, ui ){
+                    
                     if((prevX > ev.originalEvent.pageX)){
                         if(0 == ev.originalEvent.pageX%3){
-                            context.displayNext(context);
+                            context.options.reverse ? context.displayNext(context) : context.displayPrev(context);
                         }
                     }                
                     if((prevX < ev.originalEvent.pageX)){
                         if(0 == ev.originalEvent.pageX%3){
-                            context.displayPrev(context);
+                            context.options.reverse ? context.displayPrev(context) : context.displayNext(context);
                         }
                     }
                     prevX = ev.originalEvent.pageX; 
             }});
-
+            /* //Still needs test
             $(document).on("keydown",function(evt){
                 switch(evt.which){
                     case 37 :
-                        context.displayPrev(context);
+                        context.options.reverse ? context.displayNext(context) : context.displayPrev(context);
+                        context._dragIcon.remove();
                         break;
                     
                     case 39 :
-                        context.displayNext(context);
+                        context.options.reverse ? context.displayPrev(context) : context.displayNext(context);
+                        context._dragIcon.remove();
                         break; 
                 }
             });
+            */
+
+            if(this.options.autoplay){
+              this.startAutoplay(context);  
+            }
+
+        },
+
+        startAutoplay:function(context){
+           var trueSpeed = Math.ceil(1000/context.options.autoplay.speed);
+           var maxFrames = (context.options.autoplay.repeat*context._numOfPics)+2*(Math.ceil(this._filename.number/this.options.steps));
+           console.log(maxFrames,context._autoplayRepeats);  
+            context._autoplayItv = setInterval(function(){
+               if(maxFrames >= context._autoplayRepeats){
+                   context.options.reverse ? context.displayPrev(context) : context.displayNext(context);
+                   context._autoplayRepeats ++;                      
+               }else{
+                    clearInterval(context._autoplayItv);
+                    context._autoplayItv = null;
+               }
+            },trueSpeed);       
         },
 
         displayPrev: function(context){
@@ -241,9 +267,6 @@
         }
     };
 
-
-    // A really lightweight plugin wrapper around the constructor,
-    // preventing against multiple instantiations
     $.fn[pluginName] = function ( options ) {
         return this.each(function () {
             if (!$.data(this, "plugin_" + pluginName)) {
