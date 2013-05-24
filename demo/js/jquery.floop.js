@@ -3,7 +3,7 @@
  *  Description: A jQuery plugin to display a frames sequence as a browsable animation. Mainly used to simulate 3D roation in a browser.
  *  Author: Sébastien Boulanger
  *  License: Creative Commons
- *  Version: 0.5.1
+ *  Version: 0.5.2
  */
 
 ;(function ( $, window, document, undefined ) {
@@ -14,256 +14,254 @@
             reverse:false,
             callToAction:true,
             className:"",
-            autoplay: {speed:25,repeat:5,locked:true}, // sample value : {speed:25,repeat:5,locked:true}
+            autoplay: {speed:25,repeat:"infinity",locked:true}, // sample value : {speed:25,repeat:5,locked:true}
             onLoad:null,
             onComplete:null
         };
 
 
     function Plugin( element, options ) {
-        this.element = element;
-        
+        this.element = $(element);  
         this.options = $.extend( {}, defaults, options);
-        this._isTouch = false;
+        this.truc = "blah";
         this._defaults = defaults;
         this._name = pluginName;
-        this._filename = {complete: '', path: '',extension: '',noextension: '',sequence: '',number: 0,name: ''};
-        this._minPic = 0;
-        this._maxPic = 0;
-        this._numOfPics = 0;
-        this._dimensions = {width:0,height:0};
-        this._container = "";
-        this._images = "";
-        this._dragIcon ="";
-        this._statusBar = "";
-        this._progressBar = "";
-        this._progressValue = "";
-        this._visibleImg = $(this.element);
-        this._progress =0;
-        this._autoplayItv = null;
-        this._autoplayRepeats = 0;
+        this.filename = {complete: '', path: '',extension: '',noextension: '',sequence: '',number: 0,name: ''};
+        this.minPic = 0;
+        this.maxPic = 0;
+        this.numOfPics = 0;
+        this.dimensions = {width:0,height:0};
+        //jQuery HTML elements
+        this.jmlContainer = "";
+        this.jmlImages = "";
+        this.jmlDragIcon ="";
+        this.jmlStatusBar = "";
+        this.jmlProgressBar = "";
+        this.jmlProgressValue = "";
+        this.progress =0;
+        this.autoplayItv = null;
+        this.autoplayRepeats = 0;
+        this.locked = false;
         this.init();
     }
 
     Plugin.prototype = {
         init: function() {
-            var context = this;
-            if(0 === this.element.width || 0 === this.element.height){// Diffère le calcul de la taille en cas de non spécification des dimensions 
-                $.ajax(this.element.src).done(function(data){
-                    context._dimensions.width = context.element.width;
-                    context.execFloop(context);
-                });
-
-            }else{
-                this.execFloop(context);
-            }
+            this.execFloop();
         },
 
-        execFloop: function(context){
-            this.isTouch = this.isTouchDevice();
-            this._dimensions.width = this.element.width;
-            this._dimensions.height = this.element.height;
-            this._minPic =  parseInt(this.options.range.slice(0,1+this.options.range.indexOf("-")));
-            this._maxPic =  parseInt(this.options.range.slice(1+this.options.range.indexOf("-"),this.options.range.length));
-            this._numOfPics = Math.ceil(this._maxPic/this.options.steps);
-
+        execFloop: function(){
+            this.dimensions.width = this.element.get(0).width;
+            this.dimensions.height = this.element.get(0).height;
+            this.minPic =  parseInt(this.options.range.slice(0,1+this.options.range.indexOf("-")));
+            this.maxPic =  parseInt(this.options.range.slice(1+this.options.range.indexOf("-"),this.options.range.length));
+            this.numOfPics = Math.ceil(this.maxPic/this.options.steps);
             this.setFilename();
-            this.prepareHtml(context);
-            this.loadPictures(context);   
+            this.prepareHtml();
+            this.bindTriggers();
+            this.loadPictures();  
         },
 
 
-        isTouchDevice: function() {
-            if( /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent) ) {
-                return true;
-             }else {
-                return false
-             }
+        prepareHtml: function(){
+            this.element.css({position:"relative",zIndex:"1"});
+            this.jmlContainer = $('<div class="floop_container '+this.options.className+'" style="overflow:hidden;width:'+this.dimensions.width+'px;height:'+this.dimensions.height+'px;"></div>');
+            this.jmlImages = $('<div class="floop_images" style="overflow:hidden;width:'+this.dimensions.width+'px;height:'+this.dimensions.height+'px;"></div>');
+          
+            this.element.wrap(this.jmlImages);
+            this.jmlImages = $(this.element.parent());
+            this.jmlImages.wrap(this.jmlContainer);
+            this.jmlContainer = $(this.jmlImages.parent());
+            this.jmlStatusBar = $('<div style="width:'+this.dimensions.width+'px;" class="floop_status"></div>');
+            this.jmlImages.after(this.jmlStatusBar);
+
+            this.jmlProgressValue = $('<div style="width:0%;" class="floop_progress_value"></div>');
+            this.jmlProgressBar = $('<div class="floop_progress"></div>');
+            this.jmlStatusBar.append(this.jmlProgressBar);
+            this.jmlProgressBar.append(this.jmlProgressValue);
+            this.jmlDragIcon = $('<div style="margin-top:'+((this.dimensions.height/2)-11)+'px;margin-left:'+((this.dimensions.width/2)-15)+'px;" class="floop_drag_icon"></div>');    
         },
 
+        bindTriggers:function(){
+            this.element.bind("play",$.proxy(function(){
+                this.startAutoplay();
+            }),this);
 
-        prepareHtml: function(context){
-            $(this.element).css({position:"relative",zIndex:"1"});
-            this._container = $('<div class="floop_container '+this.options.className+'" style="overflow:hidden;width:'+this._dimensions.width+'px;height:'+this._dimensions.height+'px;"></div>');
-            this._images = $('<div class="floop_images" style="overflow:hidden;width:'+this._dimensions.width+'px;height:'+this._dimensions.height+'px;"></div>');
-            $(this.element).wrap(this._images);
-            $(this.element).parent().wrap(this._container);
-            this._statusBar = $('<div style="width:'+this._dimensions.width+'px;" class="floop_status"></div>');
-            $(this.element).parent().after(this._statusBar);
+            this.element.bind("stop",$.proxy(function(){
+                this.startAutoplay();
+            }),this);
 
-            this._progressValue = $('<div style="width:0%;" class="floop_progress_value"></div>');
-            this._progressBar = $('<div class="floop_progress"></div>');
-            this._statusBar.append(this._progressBar);
-            this._progressBar.append(this._progressValue);
-            this._dragIcon = $('<div style="margin-top:'+((this._dimensions.height/2)-11)+'px;margin-left:'+((this._dimensions.width/2)-15)+'px;" class="floop_drag_icon"></div>');
+            this.element.bind("next",$.proxy(function(){
+                this.startAutoplay();
+            }),this);
+
+            this.element.bind("prev",$.proxy(function(){
+                this.startAutoplay();
+            }),this);
         },
 
-        animateDragIcon:function(context){
-            this._dragIcon.animate({marginLeft:'-=2px'}, 200,function(){
-                context._dragIcon.animate({marginLeft:'+=2px'}, 200,function(){
-                    context.animateDragIcon(context);
-                });
-            });            
+        animateDragIcon:function(){
+            this.jmlDragIcon.animate({marginLeft:'-=2px'}, 200).animate({marginLeft:'+=2px'},200,$.proxy(
+                function(){
+                    this.animateDragIcon();
+                },this
+            ));      
         },
 
         setFilename: function(){
             regSequence = new RegExp("[0-9]+$");
             regFilenumber = new RegExp("^0*");
-            this._filename.complete = this.element.src.slice(1+this.element.src.lastIndexOf("/"),this.element.src.length);
-            this._filename.path =  this.element.src.slice(0,1+this.element.src.lastIndexOf("/"));
-            this._filename.extension = this._filename.complete.slice(1+this._filename.complete.lastIndexOf("."),this._filename.complete.length);
-            this._filename.noextension = this._filename.complete.slice(0,this._filename.complete.lastIndexOf("."));
-            this._filename.sequence = this._filename.noextension.match(regSequence)[0];
-            this._filename.number = parseInt(this._filename.sequence.replace(regFilenumber,""));
-            this._filename.name = this._filename.noextension.slice(0,this._filename.noextension.lastIndexOf(this._filename.sequence));            
+            this.filename.complete = this.element.attr("src").slice(1+this.element.attr("src").lastIndexOf("/"),this.element.attr("src").length);
+            this.filename.path =  this.element.attr("src").slice(0,1+this.element.attr("src").lastIndexOf("/"));
+            this.filename.extension = this.filename.complete.slice(1+this.filename.complete.lastIndexOf("."),this.filename.complete.length);
+            this.filename.noextension = this.filename.complete.slice(0,this.filename.complete.lastIndexOf("."));
+            this.filename.sequence = this.filename.noextension.match(regSequence)[0];
+            this.filename.number = parseInt(this.filename.sequence.replace(regFilenumber,""));
+            this.filename.number = (this.filename.number) ? this.filename.number : 0;
+            this.filename.name = this.filename.noextension.slice(0,this.filename.noextension.lastIndexOf(this.filename.sequence));            
         },
 
-        loadPictures: function(context){
+        loadPictures: function(){
             var sSequence = "";
             var sZero = "0";
             var img = "";
             var aImgs = []; 
             var file = "";
-            for (var i = 0; i <= this._numOfPics; i++) {                
-                sSequence = ""+(this._minPic+(i*this.options.steps));
-                while(sSequence.length<this._filename.sequence.length){
+            for (var i = 0; i <= this.numOfPics; i++) {                
+                sSequence = ""+(this.minPic+(i*this.options.steps));
+                while(sSequence.length<this.filename.sequence.length){
                     sSequence = sZero.concat(sSequence);
                 }                
-                file = this._filename.path+this._filename.name+sSequence+"."+this._filename.extension;
+                file = this.filename.path+this.filename.name+sSequence+"."+this.filename.extension;
                 img = $('<img style="display:none;" />');
-                img.attr('src', file).load(function() {
-                    if (!this.complete || typeof this.naturalWidth == "undefined" || this.naturalWidth == 0) {
-                        console.log('Something wrong happens : '+file);
-                    } else {
-                        aImgs.push(this);
-                    }
-                    
-                    context.incrementLoad();
-                    if(context._progress == context._numOfPics){
-                        context.appendPictures(aImgs,context)
-                    }else{
-                      context._progress++;  
-                    }
-                });
+                img.attr('src', file).on("load", $.proxy(
+                    function(ev) {
+                        aImgs.push(ev.currentTarget);
+                        this.progress++;  
+                        this.incrementLoad();
+                        if(this.progress === (this.numOfPics)){
+                            this.appendPictures(aImgs)
+                        }
+                    },this
+                ));
+
             };
         },
 
-        appendPictures: function(aImgs,context){
-            this._statusBar.remove();
-            for (var i = 0; i <= this._numOfPics; i++) {
+        appendPictures: function(aImgs){
+
+            this.jmlStatusBar.remove();
+            for (var i = 0; i <= this.numOfPics; i++) {
                 var myImg = aImgs[i];
                 var sSequence = "";
                 var sZero ="0";
-                sSequence = ""+(this._minPic+(i*this.options.steps));
-                while(sSequence.length<this._filename.sequence.length){
+                sSequence = ""+(this.minPic+(i*this.options.steps));
+                while(sSequence.length<this.filename.sequence.length){
                     sSequence = sZero.concat(sSequence);
                 }                
-                file = this._filename.path+this._filename.name+sSequence+"."+this._filename.extension;                
-                for (var j = 0; j <= this._numOfPics; j++) {             
-                    if($(aImgs[j]).attr("src") == file){
-                        if(-1 != $(aImgs[j]).attr("src").indexOf($(this.element).attr("src"))){
-                            $(this.element).parent().append($(this.element));
+                file = this.filename.path+this.filename.name+sSequence+"."+this.filename.extension;                
+                for (var j = 0; j <= this.numOfPics; j++) {             
+                    if($(aImgs[j]).attr("src") === file){
+                        if(-1 != $(aImgs[j]).attr("src").indexOf(this.element.attr("src"))){
+                            this.jmlImages.append(this.element);
                         }else{
-                            $(this.element).parent().append(aImgs[j]);
+                            this.jmlImages.append(aImgs[j]);
                         }
                     }
                 }
             }
-
-            this.options.callToAction ? $(this.element).parent().before(this._dragIcon) : null;
-            this.animateDragIcon(context);
-            this.setControls(context);
+            this.options.callToAction ? this.jmlImages.before(this.jmlDragIcon) : null;
+            this.animateDragIcon();
+            this.setControls();
         },
 
         incrementLoad: function(){ 
-            this._progressValue.css("width",Math.ceil((this._progress/this._numOfPics)*100)+"%");
+            this.jmlProgressValue.css("width",Math.ceil((this.progress/this.numOfPics)*100)+"%");
         },
 
-        setControls: function(context){
-
-            $(context.element).parent().on("mouseover",function(){
-                context._dragIcon.remove();
-                $(this).off("mouseover");
-            });
+        setControls: function(){
+            this.jmlImages.on("mouseover",$.proxy(function(ev){
+                this.jmlDragIcon.remove();
+                $(ev.currentTarget).off("mouseover");
+            },this));
 
             var prevX = 0;
-            $(context.element).parent().draggable({ 
+            this.jmlImages.draggable({ 
                 iframeFix: true,
-                grid: [900000, 900000],
-                drag:function( ev, ui ){
-                    
+                grid: [999999,999999],
+                drag:$.proxy(function( ev, ui ){
+                    if(!this.options.autoplay.locked){this.stopAutoplay();}
+
                     if((prevX > ev.originalEvent.pageX)){
-                        if(0 == ev.originalEvent.pageX%3){
-                            context.options.reverse ? context.displayNext(context) : context.displayPrev(context);
+                        if(0 === ev.originalEvent.pageX%3){
+                            this.options.reverse ? this.displayNext() : this.displayPrev();
                         }
                     }                
                     if((prevX < ev.originalEvent.pageX)){
-                        if(0 == ev.originalEvent.pageX%3){
-                            context.options.reverse ? context.displayPrev(context) : context.displayNext(context);
+                        if(0 === ev.originalEvent.pageX%3){
+                            this.options.reverse ? this.displayPrev() : this.displayNext();
                         }
                     }
                     prevX = ev.originalEvent.pageX; 
-            }});
-            /* //Still needs test
-            $(document).on("keydown",function(evt){
-                switch(evt.which){
-                    case 37 :
-                        context.options.reverse ? context.displayNext(context) : context.displayPrev(context);
-                        context._dragIcon.remove();
-                        break;
-                    
-                    case 39 :
-                        context.options.reverse ? context.displayPrev(context) : context.displayNext(context);
-                        context._dragIcon.remove();
-                        break; 
-                }
-            });
-            */
-
+            },this)});
             if(this.options.autoplay){
-              this.startAutoplay(context);  
+              this.startAutoplay();  
             }
-
         },
 
-        startAutoplay:function(context){
-           var trueSpeed = Math.ceil(1000/context.options.autoplay.speed);
-           var maxFrames = (context.options.autoplay.repeat*context._numOfPics)+2*(Math.ceil(this._filename.number/this.options.steps));
-           console.log(maxFrames,context._autoplayRepeats);  
-            context._autoplayItv = setInterval(function(){
-               if(maxFrames >= context._autoplayRepeats){
-                   context.options.reverse ? context.displayPrev(context) : context.displayNext(context);
-                   context._autoplayRepeats ++;                      
+        startAutoplay:function(){   
+           if(this.options.autoplay.locked){
+             this.locked="true";
+           }
+           this.options.autoplay.speed = (this.options.autoplay.speed) ? this.options.autoplay.speed : 25;
+           this.options.autoplay.repeat = (this.options.autoplay.repeat) ? this.options.autoplay.repeat : 1;
+           var trueSpeed = Math.ceil(1000/this.options.autoplay.speed);
+           var maxFrames = 0;
+           if("infinity" !== this.options.autoplay.repeat){
+             maxFrames = (this.options.autoplay.repeat*this.numOfPics)+(Math.ceil(this.filename.number/this.options.steps));
+             
+           } 
+           //console.log(maxFrames,context.o._autoplayRepeats);
+            this.autoplayItv = setInterval($.proxy(function(){
+               if("infinity" === this.options.autoplay.repeat || maxFrames >= this.autoplayRepeats){
+                   this.autoplayRepeats ++; 
+                   this.options.reverse ? this.displayPrev(true) : this.displayNext(true);                                        
                }else{
-                    clearInterval(context._autoplayItv);
-                    context._autoplayItv = null;
+                   this.stopAutoplay();
                }
-            },trueSpeed);       
+            },this),trueSpeed);       
         },
-
-        displayPrev: function(context){
-            if(context._visibleImg.prev().get(0)){
-                context._visibleImg.css("display","none");
-                context._visibleImg.prev().css("display","block");
-                context._visibleImg = context._visibleImg.prev();
-            }else{
-                context._visibleImg.css("display","none");
-                context._visibleImg.parent().find("img:last-child").css("display","block");
-                context._visibleImg = context._visibleImg.parent().find("img:last-child");
-            }
-
+        stopAutoplay:function(){
+            this.autoplayRepeats = 0;
+            clearInterval(this.autoplayItv);
+            this.autoplayItv = null;
+            this.locked=false;
         },
-        displayNext: function(context){
-            if(context._visibleImg.next().get(0)){
-                context._visibleImg.css("display","none");
-                context._visibleImg.next().css("display","block");
-                context._visibleImg = context._visibleImg.next();
-            }else{
-                context._visibleImg.css("display","none");
-                context._visibleImg.parent().find("img:first-child").css("display","block");
-                context._visibleImg = context._visibleImg.parent().find("img:first-child");
+        displayPrev: function(force){
+            if(force || !this.locked){
+                if(this.element.prev().get(0)){
+                    this.element.css("display","none");
+                    this.element.prev().css("display","block");
+                    this.element = this.element.prev();
+                }else{
+                    this.element.css("display","none");
+                    this.jmlImages.find("img:last-child").css("display","block");
+                    this.element = this.jmlImages.find("img:last-child");
+                }
             }
-
+        },
+        displayNext: function(force){
+            if(force || !this.locked){
+                if(this.element.next().get(0)){
+                    this.element.css("display","none");
+                    this.element.next().css("display","block");
+                    this.element = this.element.next();
+                }else{
+                    this.element.css("display","none");
+                    this.jmlImages.find("img:first-child").css("display","block");
+                    this.element = this.jmlImages.find("img:first-child");
+                }
+            }
         }
     };
 
