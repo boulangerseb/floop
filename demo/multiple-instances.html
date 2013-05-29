@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>Demonstration of floop jQuery plugin</title>
+        <meta name="description" content="Demonstration of floop jQuery plugin">
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" href="css/floop.css" />
+    </head>
+    <body>
+        <h1>Multiple instance of floop with the same class</h1>
+        <p>Drag on the picture to rotate the object</p>
+        <!-- just add the image you want to display by default, others will load asynchronously -->
+        <img src="img/assets/wagon/wagon0075.png" class="whatyouwant" alt="Demonstration of floop jQuery plugin" />
+        <img src="img/assets/wagon/wagon0060.png" class="whatyouwant" alt="Demonstration of floop jQuery plugin" />
+        <script src="js/libs/jquery-1.9.1.min.js"></script>
+        <!-- the two next scripts are mandatory only if you want touch-screen support -->
+        <script src="js/libs/jquery-ui-1.10.3.custom.min.js"></script>
+        <script src="js/libs/jquery.ui.touch-punch.min.js"></script>
+        <script src="js/jquery.floop.js"></script>
+        <script type="text/javascript">
+        $(document).ready(function(){
+            $(".whatyouwant").floop({
+                range:"0-100",
+                steps:5,
+                className:"myCustomClassname"
+            });
+        });
+        </script>
+    </body>
+</html>
