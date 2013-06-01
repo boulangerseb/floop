@@ -1,7 +1,7 @@
 .floop_container{cursor:url('../img/floopDragIcon.png') 15 11,e-resize;}
-.floop_container.horizontal{cursor:url('../img/floopDragIconV.png') 15 11,n-resize;}
+.floop_container.y{cursor:url('../img/floopDragIconY.png') 15 11,n-resize;}
 .floop_status{position:relative;z-index: 1;height:0.2em;overflow:hidden;top:-0.2em;background:#fff;opacity:0.75;}
 .floop_progress{width:100%;height:0.2em;margin:0 auto;}
 .floop_progress_value{height:0.2em;background:#baff00;}
 .floop_drag_icon{position:absolute;z-index:3;width:30px;height:23px;background:transparent url(../img/floopDragIcon.png);}
-.floop_drag_icon.horizontal{width:23px;height:30px;background:transparent url(../img/floopDragIconV.png);}
+.floop_drag_icon.y{width:23px;height:30px;background:transparent url(../img/floopDragIconY.png);}

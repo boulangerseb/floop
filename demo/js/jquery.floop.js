@@ -3,7 +3,7 @@
  *  Description: A jQuery plugin to display a frames sequence as a browsable animation. Mainly used to simulate 3D roation in a browser.
  *  Author: Sébastien Boulanger
  *  License: Creative Commons
- *  Version: 0.6.1
+ *  Version: 0.6.2
  */
 ;
 (function ($, window, document, undefined) {
@@ -16,7 +16,7 @@
                 height: 0,
                 steps: 1,
                 reverse: false,
-                axis: "vertical",
+                axis: "y",
                 callToAction: true,
                 className: "",
                 autoplay: {
@@ -133,7 +133,7 @@
             },
 
             animateDragIcon: function () {
-                var css = {}, css2 = {}, margin = ("vertical" === this.options.axis) ? "marginLeft" : "marginTop";
+                var css = {}, css2 = {}, margin = ("x" === this.options.axis) ? "marginLeft" : "marginTop";
                 css[margin] = "-=2px";
                 css2[margin] = "+=2px";
                 this.$DragIcon.animate(css,200).animate(css2,200, $.proxy(function(){
@@ -230,7 +230,7 @@
                         drag: $.proxy(function (ev, ui) {
 
                                 (!this.options.autoplay.locked) ? this.stopAutoplay() : false;
-                                ("horizontal" === this.options.axis) ? axis = "pageY" : "pageX";                             
+                                ("y" === this.options.axis) ? axis = "pageY" : "pageX";                             
                                 if (prevX > ev.originalEvent[axis]) {
                                     if (0 === ev.originalEvent[axis] % 3) {
                                         this.options.reverse ? this.displayNext() : this.displayPrev();

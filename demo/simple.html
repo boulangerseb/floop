@@ -19,12 +19,13 @@
         <!-- the two next scripts are mandatory only if you want touch-screen support -->
         <script src="js/libs/jquery-ui-1.10.3.custom.min.js"></script>
         <script src="js/libs/jquery.ui.touch-punch.min.js"></script>
-        <script src="js/jquery.floop.js"></script>
+        <script src="../jquery.floop.js"></script>
         <script type="text/javascript">
         $(document).ready(function(){
             $(".whatyouwant").floop({
                 range:"0-100",
                 steps:5,
+                axis:"y",
                 className:"myCustomClassname"
             });
         });
