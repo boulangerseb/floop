@@ -3,7 +3,7 @@
  *  Description: A jQuery plugin to display a frames sequence as a browsable animation. Mainly used to simulate 3D roation in a browser.
  *  Author: Sébastien Boulanger
  *  License: Creative Commons
- *  Version: 0.5.3
+ *  Version: 0.6.1
  */
 ;
 (function ($, window, document, undefined) {
@@ -16,6 +16,7 @@
                 height: 0,
                 steps: 1,
                 reverse: false,
+                axis: "vertical",
                 callToAction: true,
                 className: "",
                 autoplay: {
@@ -114,7 +115,7 @@
                         position: "relative",
                         zIndex: "1"
                     });
-                this.$Container = $('<div class="floop_container ' + this.options.className + '" style="overflow:hidden;width:' + this.dimensions.width + 'px;height:' + this.dimensions.height + 'px;"></div>');
+                this.$Container = $('<div class="floop_container ' + " " + this.options.axis + " " + this.options.className + '" style="overflow:hidden;width:' + this.dimensions.width + 'px;height:' + this.dimensions.height + 'px;"></div>');
                 this.$Images = $('<div class="floop_images" style="overflow:hidden;width:' + this.dimensions.width + 'px;height:' + this.dimensions.height + 'px;"></div>');
 
                 this.element.wrap(this.$Images);
@@ -128,19 +129,17 @@
                 this.$ProgressBar = $('<div class="floop_progress"></div>');
                 this.$StatusBar.append(this.$ProgressBar);
                 this.$ProgressBar.append(this.$ProgressValue);
-                this.$DragIcon = $('<div style="margin-top:' + ((this.dimensions.height / 2) - 11) + 'px;margin-left:' + ((this.dimensions.width / 2) - 15) + 'px;" class="floop_drag_icon"></div>');
+                this.$DragIcon = $('<div style="margin-top:' + ((this.dimensions.height / 2) - 11) + 'px;margin-left:' + ((this.dimensions.width / 2) - 15) + 'px;" class="floop_drag_icon '+this.options.axis+' "></div>');
             },
 
             animateDragIcon: function () {
-
-                this.$DragIcon.animate({
-                        marginLeft: '-=2px'
-                    }, 200).animate({
-                        marginLeft: '+=2px'
-                    }, 200, $.proxy(function () {
-
-                            this.animateDragIcon();
-                        }, this));
+                var css = {}, css2 = {}, margin = ("vertical" === this.options.axis) ? "marginLeft" : "marginTop";
+                css[margin] = "-=2px";
+                css2[margin] = "+=2px";
+                this.$DragIcon.animate(css,200).animate(css2,200, $.proxy(function(){
+                        this.animateDragIcon();
+                    },this)
+                );
             },
 
             setFilename: function () {
@@ -224,25 +223,25 @@
                             $(ev.currentTarget).off("mouseover");
                         }, this));
 
-                var prevX = 0;
+                var prevX = 0, axis = "pageX";
                 this.$Images.draggable({
                         iframeFix: true,
                         grid: [999999, 999999],
                         drag: $.proxy(function (ev, ui) {
-                                if (!this.options.autoplay.locked) {
-                                    this.stopAutoplay();
-                                }
-                                if ((prevX > ev.originalEvent.pageX)) {
-                                    if (0 === ev.originalEvent.pageX % 3) {
+
+                                (!this.options.autoplay.locked) ? this.stopAutoplay() : false;
+                                ("horizontal" === this.options.axis) ? axis = "pageY" : "pageX";                             
+                                if (prevX > ev.originalEvent[axis]) {
+                                    if (0 === ev.originalEvent[axis] % 3) {
                                         this.options.reverse ? this.displayNext() : this.displayPrev();
                                     }
                                 }
-                                if ((prevX < ev.originalEvent.pageX)) {
-                                    if (0 === ev.originalEvent.pageX % 3) {
+                                if (prevX < ev.originalEvent[axis]) {
+                                    if (0 === ev.originalEvent[axis] % 3) {
                                         this.options.reverse ? this.displayPrev() : this.displayNext();
                                     }
                                 }
-                                prevX = ev.originalEvent.pageX;
+                                prevX = ev.originalEvent[axis];                               
                             }, this)
                     });
                 if (this.options.autoplay) {
@@ -316,7 +315,7 @@
                 }
             }
         };
-        //PUBLIC FUNCTIONS. USAGE : $.floop(".myFloopSelector").next()
+        //PUBLIC FUNCTIONS. USAGE : $.floop().next(".myFloopSelector");
         publicMethod = $.fn[pluginName] = $[pluginName] = function (options) {
 
             var $this = this;
